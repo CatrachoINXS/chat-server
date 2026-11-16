@@ -1,0 +1,39 @@
+package edu.dosw.chat_server.infrastructure.adapter.in.rest;
+
+import edu.dosw.chat_server.application.ChatMetrics;
+import edu.dosw.chat_server.domain.model.ChatMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.SendTo;
+import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
+import org.springframework.stereotype.Controller;
+
+@Controller
+public class ChatController {
+
+    private final ChatMetrics metrics;
+
+    public ChatController(ChatMetrics metrics) {
+        this.metrics = metrics;
+    }
+
+    private static final Logger log = LoggerFactory.getLogger(ChatController.class);
+
+    @MessageMapping("/chat.unirse")
+    @SendTo("/topic/sala")
+    public ChatMessage unirse(ChatMessage mensaje, SimpMessageHeaderAccessor headers) {
+        headers.getSessionAttributes().put("usuario", mensaje.autor());
+        metrics.entra();
+        log.info("Se unió {}", mensaje.autor());
+        return new ChatMessage("UNION", mensaje.autor(), mensaje.autor() + " entró al chat", null).conFecha();
+    }
+
+    @MessageMapping("/chat.enviar")
+    @SendTo("/topic/sala")
+    public ChatMessage enviar(ChatMessage mensaje) {
+        metrics.mensaje(mensaje.tipo());
+        log.info("Mensaje {} de {}", mensaje.tipo(), mensaje.autor());
+        return mensaje.conFecha();
+    }
+}
